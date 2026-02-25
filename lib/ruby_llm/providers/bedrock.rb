@@ -6,12 +6,22 @@ module RubyLLM
     class Bedrock < Provider
       include Bedrock::Auth
       include Bedrock::Chat
+      include Bedrock::Embeddings
       include Bedrock::Media
       include Bedrock::Models
       include Bedrock::Streaming
 
       def api_base
         "https://bedrock-runtime.#{bedrock_region}.amazonaws.com"
+      end
+
+      def embed(text, model:, dimensions:)
+        payload = render_embedding_payload(text, model:, dimensions:)
+        url = embedding_url(model:)
+        response = @connection.post(url, payload) do |req|
+          req.headers.merge!(sign_headers('POST', url, JSON.generate(payload)))
+        end
+        parse_embedding_response(response, model:, text:)
       end
 
       def headers
